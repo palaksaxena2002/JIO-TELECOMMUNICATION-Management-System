@@ -1,0 +1,16 @@
+SELECT * FROM customers;
+SELECT * FROM contract;
+SELECT * FROM services;
+SELECT * FROM billing;
+SELECT * FROM plan;
+SELECT * FROM payment;
+
+
+DESCRIBE customers;
+DESCRIBE contract;
+DESCRIBE billing;
+DESCRIBE plan;
+DESCRIBE services;
+DESCRIBE payment;
+
+
