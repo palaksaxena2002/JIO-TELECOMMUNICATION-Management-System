@@ -1,0 +1,184 @@
+
+
+1.Basic Select Queries
+
+Q1: Display all customers who are senior citizens and have dependents.
+
+SELECT * 
+FROM Customers 
+WHERE SeniorCitizen = 1 AND Dependents = 'Yes';
+
+
+Q2: List the customers with their total charges and monthly charges, ordered by the highest total charges.**
+
+SELECT C.customerID, Co.TotalCharges, Co.MonthlyCharges 
+FROM Customers C
+JOIN contract Co ON C.customerID = Co.customerID
+ORDER BY Co.TotalCharges DESC;
+
+
+ 2.Aggregation and Group By
+
+Q3: Find the average monthly charges for customers segmented by their payment method.
+
+SELECT PaymentMethod, AVG(MonthlyCharges) AS Avg_Monthly_Charges
+FROM contract
+GROUP BY PaymentMethod;
+
+Q4: Find the total number of customers who have an OTT subscription and group them by the number of OTT apps they use.
+
+SELECT Number_of_OTT_apps, COUNT(customerID) AS Total_Customers
+FROM services
+WHERE OTT_Subscription = 'Yes'
+GROUP BY Number_of_OTT_apps;
+
+
+3. Joins
+
+Q5: Retrieve all customers who have overdue payments and display their customerID, billing ID, and due amount.
+
+SELECT C.customerID, B.Billing_ID, B.TotalCharges AS Due_Amount
+FROM billing B
+JOIN Customers C ON B.customerID = C.customerID
+WHERE B.Due_Date < CURDATE() AND B.Payment_Status = 'Pending';
+
+
+Q6: Write a query to get the total data used by each customer based on their plan, along with the plan detail
+
+SELECT C.customerID, P.Plan_name, P.Total_data
+FROM billing B
+JOIN Customers C ON B.customerID = C.customerID
+JOIN plan P ON B.Plan_id = P.Plan_id;
+
+
+4. Subqueries
+
+Q7: Find the customers who have the highest total charges and display their contract details.
+
+SELECT * 
+FROM contract
+WHERE TotalCharges = (SELECT MAX(TotalCharges) FROM contract);
+
+Q8: Retrieve all customers who do not have an international service.
+
+SELECT customerID 
+FROM Customers 
+WHERE customerID NOT IN (SELECT customerID FROM services WHERE International = 'Yes');
+
+5. Window Functions
+
+Q9: Display the rank of each customer based on their total charges.
+
+SELECT C.customerID, Co.TotalCharges, 
+       RANK() OVER (ORDER BY Co.TotalCharges DESC) AS Rank
+FROM Customers C
+JOIN contract Co ON C.customerID = Co.customerID;
+
+Q10: For each customer, find the average monthly charges over their tenure, and show a running total of monthly charges.
+
+SELECT C.customerID, Co.MonthlyCharges, 
+       AVG(Co.MonthlyCharges) OVER (PARTITION BY C.customerID) AS Avg_Monthly_Charges,
+       SUM(Co.MonthlyCharges) OVER (PARTITION BY C.customerID ORDER BY Co.Tenure) AS Running_Total
+FROM Customers C
+JOIN contract Co ON C.customerID = Co.customerID;
+
+
+6. Case Statements
+
+Q11: Classify customers based on their total charges.
+
+SELECT C.customerID, Co.TotalCharges,
+       CASE 
+           WHEN Co.TotalCharges < 500 THEN 'Low'
+           WHEN Co.TotalCharges BETWEEN 500 AND 1500 THEN 'Medium'
+           ELSE 'High'
+       END AS Charge_Category
+FROM Customers C
+JOIN contract Co ON C.customerID = Co.customerID;
+
+Q12: Display customers and indicate whether they have a payment pending or not.
+
+SELECT C.customerID, 
+       CASE 
+           WHEN B.Payment_Status = 'Pending' THEN 'Payment Pending'
+           ELSE 'No Payment Pending'
+       END AS Payment_Status
+FROM Customers C
+JOIN billing B ON C.customerID = B.customerID;
+
+ 7. Date and Time Functions
+
+Q13: Find customers whose tenure is greater than 2 years and their latest bill due date.
+
+SELECT C.customerID, C.Tenure, MAX(B.Due_Date) AS Latest_Due_Date
+FROM Customers C
+JOIN billing B ON C.customerID = B.customerID
+WHERE C.Tenure > 24
+GROUP BY C.customerID;
+
+Q14: Find the total number of payments made by each customer in the last 6 months.
+
+SELECT C.customerID, COUNT(P.Payment_ID) AS Payments_Last_6_Months
+FROM payment P
+JOIN billing B ON P.Billing_ID = B.Billing_ID
+JOIN Customers C ON B.customerID = C.customerID
+WHERE P.Payment_date >= CURDATE() - INTERVAL 6 MONTH
+GROUP BY C.customerID;
+
+
+8. String Functions
+
+Q15: Find all customers with an OTT subscription and extract the number of OTT apps they are subscribed to
+
+SELECT customerID, ott_aps_names, 
+       LENGTH(ott_aps_names) - LENGTH(REPLACE(ott_aps_names, ',', '')) + 1 AS Number_of_OTT_apps
+FROM services
+WHERE OTT_Subscription = 'Yes';
+
+
+Q16: Find all customers whose payment method includes the word 'Credit'.
+
+SELECT customerID 
+FROM contract
+WHERE PaymentMethod LIKE '%Credit%';
+
+
+9. Set Operations
+
+Q17: Retrieve a list of customer IDs who either have voice services or SMS services, but not both.
+
+SELECT customerID 
+FROM services
+WHERE (Voice_Services = 'Yes' OR SMS_service = 'Yes')
+AND NOT (Voice_Services = 'Yes' AND SMS_service = 'Yes');
+
+
+Q18: Retrieve customer IDs that have used in-flight connectivity services but have no OTT subscription.
+
+SELECT customerID 
+FROM services
+WHERE In_Flight_Connectivity = 'Yes' 
+AND OTT_Subscription = 'No';
+
+
+10.Recursive CTE
+
+Q19: Recursively display all billing information for each customer.
+
+WITH RECURSIVE Billing_CTE (Billing_ID, customerID, Bill_Date, Due_Date, TotalCharges, Payment_Status) AS (
+    SELECT Billing_ID, customerID, Bill_Date, Due_Date, TotalCharges, Payment_Status
+    FROM billing
+    WHERE Bill_Date IS NOT NULL
+    UNION ALL
+    SELECT B.Billing_ID, B.customerID, B.Bill_Date, B.Due_Date, B.TotalCharges, B.Payment_Status
+    FROM billing B
+    JOIN Billing_CTE BC ON B.customerID = BC.customerID
+)
+SELECT * FROM Billing_CTE;
+
+
+Q20: Calculate the total amount of data provided per plan category and the average data per day for each plan.
+SELECT P.Plan_category, SUM(P.Total_data) AS Total_Data_Provided, 
+       AVG(P.data_per_day) AS Avg_Data_Per_Day
+FROM plan P
+GROUP BY P.Plan_category;
